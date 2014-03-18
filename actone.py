@@ -52,32 +52,7 @@ def _get_magics(cls):
 
     return dict((magic, closure(magic)) for magic in _all_magics)
 
-
-class _Meta(type):
-
-    def __new__(self, name, bases, attrs):
-        attrs.update(_get_magics(self))
-        return type.__new__(self, name, bases, attrs)
-
-
-class _A(object):
-    __metaclass__ = _Meta
-
-    def __init__(self, a=None, attr=None, call=None, args=None, kwargs=None, magic=False):
-        object.__setattr__(self, 'a', a)
-        object.__setattr__(self, 'attr', attr)
-        object.__setattr__(self, 'call', call)
-        object.__setattr__(self, 'args', args)
-        object.__setattr__(self, 'kwargs', kwargs)
-        object.__setattr__(self, 'magic', magic)
-
-    def __getattribute__(self, attr, *args, **kwargs):
-        return _A(self, attr, False, args, kwargs)
-
-
-A = _A()
-
-def act(a, obj):
+def _act(a, obj):
     stack = []
     while True:
         _getattr = partial(object.__getattribute__, a)
@@ -105,3 +80,38 @@ def act(a, obj):
             return obj
                     
         stack.append((attr, call, args, kwargs, magic))
+
+def act(*args, **kwargs):
+    if not kwargs and len(args) == 1:
+        return partial(_act, args[0])
+
+    if args:        
+        return _act(*args, **kwargs)
+
+    return partial(_act, **kwargs)
+
+
+class _Meta(type):
+
+    def __new__(self, name, bases, attrs):
+        attrs.update(_get_magics(self))
+        return type.__new__(self, name, bases, attrs)
+
+
+class _A(object):
+    __metaclass__ = _Meta
+
+    def __init__(self, a=None, attr=None, call=None, args=None, kwargs=None, magic=False):
+        object.__setattr__(self, 'a', a)
+        object.__setattr__(self, 'attr', attr)
+        object.__setattr__(self, 'call', call)
+        object.__setattr__(self, 'args', args)
+        object.__setattr__(self, 'kwargs', kwargs)
+        object.__setattr__(self, 'magic', magic)
+
+    def __getattribute__(self, attr, *args, **kwargs):
+        return _A(self, attr, False, args, kwargs)
+
+
+A = _A()
+
